@@ -5,6 +5,7 @@
 - [ ] Reranking
 - [x] Metadata filtering
 - [x] Add relevance limit
-- [ ] Add API routes
+- [x] Add API routes
+- [ ] Add logging
 - [ ] Docker service for API
 - [ ] Deploy to server

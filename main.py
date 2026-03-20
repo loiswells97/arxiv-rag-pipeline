@@ -14,5 +14,5 @@ async def root(request: Request):
     metadata_filters = {k: parse_metadata(v) for k, v in request.query_params.items() if k not in ["q", "relevance_limit"]}
     if not query:
         return {"error": "Query parameter 'q' is required"}
-    response = rag_query(query, metadata_filters=metadata_filters, relevance_limit=relevance_limit)
+    response = rag_query(query, metadata_filters=metadata_filters, relevance_limit=relevance_limit, with_logging=True)
     return {"query": query, "relevance_limit": relevance_limit, "metadata_filters": metadata_filters, "response": response}

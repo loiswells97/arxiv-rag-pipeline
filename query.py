@@ -8,6 +8,7 @@ from psycopg2.extras import DictCursor
 from pgvector.psycopg2 import register_vector
 import numpy as np
 import anthropic
+from log import log_query, log_results, log_response
 
 load_dotenv()
 
@@ -51,7 +52,6 @@ def generate_response(question, chunks):
     for chunk in chunks:
         context += f"\n--- Similarity: {chunk['similarity']} (Source: {chunk['source']}, Title: {chunk['metadata']['title']}, Authors: {chunk['metadata']['authors']}, Published: {chunk['metadata']['published']}) ---\n{chunk['text']}\n"
 
-    print(f"Context: {context}")
     response = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=1024,
@@ -66,7 +66,13 @@ def generate_response(question, chunks):
 
     return response.content[0].text
 
-def rag_query(query, metadata_filters={}, relevance_limit=0.5):
+def rag_query(query, metadata_filters={}, relevance_limit=0.5, with_logging=False):
+    if with_logging:
+        log_query(query, metadata_filters, relevance_limit)
     results = perform_vector_search(query, metadata_filters=metadata_filters, relevance_limit=relevance_limit)
+    if with_logging:
+        log_results(results)
     response = generate_response(query, results)
+    if with_logging:
+        log_response(response)
     return response
