@@ -18,8 +18,22 @@ DB_PASSWORD = os.getenv("POSTGRES_PASSWORD")
 def load_documents(directory, metadata):
     """Load all pdf files from the directory."""
     documents = []
+    conn = psycopg2.connect(
+        host=DB_HOST,
+        port=DB_PORT,
+        database=DB_NAME,
+        user=DB_USER,
+        password=DB_PASSWORD
+    )
+    cursor = conn.cursor()
+    cursor.execute("SELECT metadata FROM documents")
+    existing_documents = cursor.fetchall()
+    existing_document_names = [doc[0]["pdf_filename"] for doc in existing_documents]
+    cursor.close()
+    conn.close()
     for filename in sorted(os.listdir(directory)):
-        if not filename.endswith((".pdf")):
+        if not filename.endswith((".pdf")) or filename in existing_document_names:
+            print(f"Skipping {filename}")
             continue
         print(f"Processing {filename}")
         filepath = os.path.join(directory, filename)
@@ -77,7 +91,6 @@ def store_embedded_chunks(chunks, batch_size=500):
         password=DB_PASSWORD
     )
     cursor = conn.cursor()
-    cursor.execute("TRUNCATE TABLE documents RESTART IDENTITY")
 
     for i in range(0, len(chunks), batch_size):
         batch = chunks[i:i+batch_size]
