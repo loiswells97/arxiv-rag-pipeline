@@ -1,0 +1,18 @@
+[project]
+name = "arxiv-rag-pipeline"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.10"
+dependencies = [
+    "anthropic>=0.86.0",
+    "chonkie>=1.6.1",
+    "fastapi>=0.135.1",
+    "fastapi-cli>=0.0.24",
+    "numpy>=2.2.6",
+    "openai>=2.29.0",
+    "pgvector>=0.4.2",
+    "psycopg2>=2.9.11",
+    "pymupdf4llm>=1.27.2.2",
+    "python-dotenv>=1.2.2",
+    "uvicorn>=0.42.0",
+]

@@ -37,7 +37,7 @@ def perform_vector_search(query, k=5, metadata_filters={}, relevance_limit=0.5):
     if metadata_filters:
         cursor.execute("SELECT *, 1 - (embedding <=> %s) AS similarity FROM documents WHERE metadata @> %s AND 1 - (embedding <=> %s) >= %s ORDER BY similarity DESC LIMIT %s", (query_embedding, json.dumps(metadata_filters), query_embedding, relevance_limit, k))
     else:
-        cursor.execute("SELECT *, 1 - (embedding <=> %s) AS similarity FROM documents WHERE 1 - (embedding <=> %s) >= 1 - %s ORDER BY similarity DESC LIMIT %s", (query_embedding, query_embedding, relevance_limit, k))
+        cursor.execute("SELECT *, 1 - (embedding <=> %s) AS similarity FROM documents WHERE 1 - (embedding <=> %s) >= %s ORDER BY similarity DESC LIMIT %s", (query_embedding, query_embedding, relevance_limit, k))
     results = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -66,10 +66,7 @@ def generate_response(question, chunks):
 
     return response.content[0].text
 
-if __name__ == "__main__":
-    query = " ".join(sys.argv[1:])
-    # results = perform_vector_search(query, metadata_filters={"published_year": "2026", "published_month": "02"})
-    results = perform_vector_search(query)
-    print(f"Found {len(results)} results")
+def rag_query(query, metadata_filters={}, relevance_limit=0.5):
+    results = perform_vector_search(query, metadata_filters=metadata_filters, relevance_limit=relevance_limit)
     response = generate_response(query, results)
-    print(response)
+    return response
