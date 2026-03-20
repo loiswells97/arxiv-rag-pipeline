@@ -18,7 +18,7 @@ DB_PASSWORD = os.getenv("POSTGRES_PASSWORD")
 
 openai = OpenAI()
 
-def perform_vector_search(query, k=1):
+def perform_vector_search(query, k=5):
     embedding = openai.embeddings.create(
         input=query,
         model="text-embedding-3-small"
@@ -45,12 +45,13 @@ def generate_response(question, chunks):
 
     context = ""
     for chunk in chunks:
-        context += f"\n--- Chunk {chunk['id']} (from {chunk['source']}) ---\n{chunk['text']}\n"
+        context += f"\n--- Chunk {chunk['id']} (Source: {chunk['source']}, Title: {chunk['metadata']['title']}, Authors: {chunk['metadata']['authors']}, Published: {chunk['metadata']['published']}) ---\n{chunk['text']}\n"
 
+    print(f"Context: {context}")
     response = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=1024,
-        system="You are a helpful assistant. Answer questions based only on the provided context. If the context doesn't contain enough information to answer, say so. Include citations from the context for every assertion made in the answer.",
+        system="You are a helpful assistant. Answer questions based only on the provided context. If the context doesn't contain enough information to answer, say so. Include citations from the context in academic citation format for every assertion made in the answer.",
         messages=[
             {
                 "role": "user",
@@ -64,5 +65,6 @@ def generate_response(question, chunks):
 if __name__ == "__main__":
     query = " ".join(sys.argv[1:])
     results = perform_vector_search(query)
+    print(f"Found {len(results)} results")
     response = generate_response(query, results)
     print(response)
