@@ -9,3 +9,4 @@
 - [x] Add logging
 - [x] Docker service for API
 - [ ] Deploy to server
+- [ ] Ingestion error handling

@@ -37,25 +37,33 @@ def load_documents(directory, metadata):
             print(f"Skipping {filename}")
             continue
         print(f"Processing {filename}")
-        filepath = os.path.join(directory, filename)
-        md_text = pymupdf4llm.to_markdown(filepath)
-        file_metadata = next((item for item in metadata if item["pdf_filename"] == filename), None)
-        file_metadata = {k: v for k, v in file_metadata.items() if k != "abstract"}
-        file_metadata["published_year"] = file_metadata["published"].split("-")[0]
-        file_metadata["published_month"] = file_metadata["published"].split("-")[1]
-        file_metadata["published_day"] = file_metadata["published"].split("-")[2]
-        documents.append({
-            "text": md_text,
-            "source": filename,
-            "metadata": json.dumps(file_metadata)
-        })
+        try:
+            filepath = os.path.join(directory, filename)
+            md_text = pymupdf4llm.to_markdown(filepath)
+            file_metadata = next((item for item in metadata if item["pdf_filename"] == filename), None)
+            file_metadata = {k: v for k, v in file_metadata.items() if k != "abstract"}
+            file_metadata["published_year"] = file_metadata["published"].split("-")[0]
+            file_metadata["published_month"] = file_metadata["published"].split("-")[1]
+            file_metadata["published_day"] = file_metadata["published"].split("-")[2]
+            documents.append({
+                "text": md_text,
+                "source": filename,
+                "metadata": json.dumps(file_metadata)
+            })
+        except Exception as e:
+            print(f"Error loading document {filename}: {e}")
+            continue
     return documents
 
 def load_documents_metadata(filepath):
     """Load the metadata for a document."""
-    with open(filepath, "r") as f:
-        metadata = json.load(f)
-    return metadata
+    try:
+        with open(filepath, "r") as f:
+            metadata = json.load(f)
+        return metadata
+    except Exception as e:
+        print(f"Error loading metadata from {filepath}: {e}")
+        return []
 
 def chunk_documents(documents, chunk_size=1500):
     """Chunk the documents using the RecursiveChunker."""
@@ -64,26 +72,34 @@ def chunk_documents(documents, chunk_size=1500):
     chunks = []
 
     for document in documents:
-        text_chunks = chunker(document["text"])
-        for text_chunk in text_chunks:
-            chunk = {
-                "text": text_chunk.text,
-                "source": document["source"],
-                "metadata": document["metadata"]
-            }
-            chunks.append(chunk)
+        try:
+            text_chunks = chunker(document["text"])
+            for text_chunk in text_chunks:
+                chunk = {
+                    "text": text_chunk.text,
+                    "source": document["source"],
+                    "metadata": document["metadata"]
+                }
+                chunks.append(chunk)
+        except Exception as e:
+            print(f"Error chunking document {document['source']}: {e}")
+            continue
     return chunks
 
 def embed_chunks(chunks):
     chunks_with_embeddings = []
     openai = OpenAI()
     for chunk in chunks:
-        embedding = openai.embeddings.create(
-            input=chunk["text"],
-            model="text-embedding-3-small"
-        )
-        chunk["embedding"] = embedding.data[0].embedding
-        chunks_with_embeddings.append(chunk)
+        try:
+            embedding = openai.embeddings.create(
+                input=chunk["text"],
+                model="text-embedding-3-small"
+            )
+            chunk["embedding"] = embedding.data[0].embedding
+            chunks_with_embeddings.append(chunk)
+        except Exception as e:
+            print(f"Error embedding chunk {chunk['source']}: {e}")
+            continue
     return chunks_with_embeddings
 
 def store_embedded_chunks(chunks, batch_size=500):
@@ -97,10 +113,14 @@ def store_embedded_chunks(chunks, batch_size=500):
     cursor = conn.cursor()
 
     for i in range(0, len(chunks), batch_size):
-        batch = chunks[i:i+batch_size]
-        values = [(chunk["text"], chunk["embedding"], chunk["source"], chunk["metadata"]) for chunk in batch]
-        cursor.executemany("INSERT INTO documents (text, embedding, source, metadata) VALUES (%s, %s, %s, %s)", values)
-    conn.commit()
+        try:
+            batch = chunks[i:i+batch_size]
+            values = [(chunk["text"], chunk["embedding"], chunk["source"], chunk["metadata"]) for chunk in batch]
+            cursor.executemany("INSERT INTO documents (text, embedding, source, metadata) VALUES (%s, %s, %s, %s)", values)
+            conn.commit()
+        except Exception as e:
+            print(f"Error storing embedded chunks: {e}")
+            continue
     cursor.close()
     conn.close()
 
